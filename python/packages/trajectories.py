@@ -354,6 +354,44 @@ def read_xyz(xyz_path, start=0, end=-1, stride=1, cell=False, spec_list=False,
             return coords, frames, cells, species_list
 
 
+def read_trajectory(path, **kwargs):
+    """Parse .xyz or .pdb trajectories.
+
+    Args:
+        path (str): Path to the trajectory.
+        start (int, opt): Starting frame (time step). Defaults to 0.
+        end (int, opt): End frame (time step).
+            A negative value means do not stop until EOF.
+            Defaults to -1.
+        stride (int): Number of time steps to skip between saving.
+            Defaults to 1.
+        cell (bool): If True, return cell dimensions. Defaults to False.
+        spec_list (bool): If True, return corresponding list of
+            atomic species. Defaults to False.
+        species (tuple, str): Species to read. Defaults to ('O',).
+        axes (tuple, int): Axes to read.
+            0, 1, 2 for x, y, z respectively. Defaults to all.
+        throb (bool): If True, display a throbber. Defaults to True.
+
+    Returns:
+        positions (array, float): Coordinates of trajectory.
+            Indexed by [step, atom_index, axis].
+        frames (array, int): Time steps.
+        cell_array (array, float): Dimensions of supercell.
+            Returned only if cell argument is True.
+        species_list (list, str): List of atomic species.
+            Returned only if spec_list argument is True.
+    """
+    # Check extension to decide which method to use
+    ext = os.path.splitext(path)[1]
+    if ext == '.pdb':
+        return read_pdb(path, **kwargs)
+    elif ext == '.xyz':
+        return read_xyz(path, **kwargs)
+    else:
+        raise IOError(os.path.basename(path)+' - File must be a pdb or xyz')
+
+
 def write_pdb(path, positions, cell, species, frames=None):
     """Write trajectory to .pdb file.
 
