@@ -16,6 +16,8 @@ import sys
 import warnings
 from collections import Iterable
 
+__author__ = "Johan G. McQuillan"
+__email__ = "johan.mcquillan.13@ucl.ac.uk"
 
 # Initialise
 throbber = {0:  '-',
