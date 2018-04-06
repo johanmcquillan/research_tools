@@ -475,6 +475,28 @@ def write_xyz(path, positions, cell, species, frames=None):
                 xyz.write('{:3}         {}  \n'.format(s, coords))
 
 
+def write_trajectory(path, **kwargs):
+    """Write trajectory to .pdb or .xyz file.
+
+    Args:
+        path (str): Path to file.
+        positions (ndarray, float): Atomic coordinates.
+            Indexed by [step, atom_index, dimension].
+        cell (ndarray, float): Cell dimensions.
+        species (list, str): Atomic species.
+        frames (ndarray, int): If given, labels frames with step number.
+            Defaults to None, so frames are labelled in increments of 1.
+    """
+    # Check extension to decide which method to use
+    ext = os.path.splitext(path)[1]
+    if ext == '.pdb':
+        write_pdb(path, **kwargs)
+    elif ext == '.xyz':
+        write_xyz(path, **kwargs)
+    else:
+        raise IOError(os.path.basename(path)+' - File must be a pdb or xyz')
+
+
 def get_rdf(positions, cell, dr=0.1, r_max=10., prog_bar=False, verbose=False):
     """Return a the 2D radial distribution function of a trajectory.
 
