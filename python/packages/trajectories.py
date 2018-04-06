@@ -435,3 +435,106 @@ def write_xyz(path, positions, cell, species, frames=None):
                         coords += ' '
                     coords += ' {:10.5e}'.format(u)
                 xyz.write('{:3}         {}  \n'.format(s, coords))
+
+
+def get_rdf(positions, cell, dr=0.1, r_max=10., prog_bar=False, verbose=False):
+    """Return a the 2D radial distribution function of a trajectory.
+
+    Args:
+        positions (ndarray, float): Atomic coordinates.
+            Indexed by [step, dimension, atom].
+        cell (ndarray, float): Cell dimensions.
+        dr (float): Bin width for histogram. Defaults to 0.1.
+        r_max (float): Maximum range to consider. Defaults to 10.
+        prog_bar (bool): If True, show a progress bar.
+            Defaults to False.
+        verbose (bool): If True, display verbose output.
+
+    Returns:
+        bins (ndarray, float): Distances.
+        histogram (ndarray, float): RDF histogram.
+        i_max1 (int): Index of first maximum.
+        i_max2 (int): Index of second maximum.
+        coordination (float): Coordination number.
+            Integral of RDF up to second maximum.
+    """
+    # Get average surface number density for each snapshot
+    density = positions.shape[2] / (cell[:, 0] * cell[:, 1])
+    
+    # Get displacements between every pair
+    xy = np.zeros((positions.shape[0], positions.shape[1], positions.shape[2], positions.shape[2]))
+    for i in range(positions.shape[2]):
+        xy[:, :2, i] = positions[:, :2] - positions[:, :2, i, None]
+    
+    # Shift displacements to nearest pbc image
+    while np.any(xy >= cell[:, :, None, None] / 2):
+        xy -= cell[:, :, None, None] * (xy >= cell[:, :, None, None] / 2).astype(int)
+    while np.any(xy < -cell[:, :, None, None] / 2):
+        xy += cell[:, :, None, None] * (xy < -cell[:, :, None, None] / 2).astype(int)
+    
+    # Calculate absolute distances
+    r = np.sqrt(xy[:, 0, :, :] ** 2 + xy[:, 1, :, :] ** 2)
+    
+    # Initialise histogram
+    if verbose or prog_bar:
+        sys.stdout.write('Filling Histogram...\n')
+        sys.stdout.flush()
+    bins = np.linspace(dr / 2, r_max + dr / 2, int(r_max / dr), endpoint=False)
+    hist = np.zeros((density.shape[0], bins.shape[0]))
+    
+    # Fill bins, ignoring zeroth
+    bars_done = 0
+    for i in range(1, bins.shape[0]):
+        hist[:, i] += (1. / (2 * np.pi * i * dr ** 2) *
+                       np.sum((r >= i * dr).astype(int) * (r < (i + 1) * dr).astype(int),
+                              axis=(1, 2)))
+        
+        # Update progress bar
+        progress = float(i) / bins.shape[0] * bars_total
+        if prog_bar and progress >= bars_done:
+            bars_done = int(np.round(progress))
+            sys.stdout.write('\r  [{:<{}}] '.format(bar_char * bars_done, bars_total))
+            sys.stdout.write(' {:>3.0f}%'.format(np.ceil(float(i) / bins.shape[0] * 100)))
+            sys.stdout.flush()
+    if prog_bar:
+        sys.stdout.write('\n')
+        sys.stdout.flush()
+    
+    # Normalise rdf by density
+    hist /= density[:, None] * (positions.shape[2] - 1)
+    # Average over all frames
+    histogram = np.sum(hist, axis=0) / hist.shape[0]
+    
+    # Get first maximum (assume it is the highest peak)
+    i_max1 = np.argmax(histogram)
+    
+    minima_2_found = False
+    i = i_max1 + 1
+    # Find second minimum
+    # Loop until gradient is positive
+    while not minima_2_found:
+        if histogram[i] > histogram[i - 1]:
+            i_min2 = i - 1
+            minima_2_found = True
+        else:
+            i += 1
+    
+    # Calculate coordination number by integrating from 0 to i_min2
+    coordination = 0
+    for i in range(0, i_min2):
+        coordination += histogram[i] * bins[i] * dr
+    # Unnormalise
+    coordination *= 2 * np.pi * np.mean(density)
+    
+    # Find second maxima
+    maxima_2_found = False
+    i = i_min2 + 1
+    # Loop until gradient is negative
+    while not maxima_2_found:
+        if histogram[i] < histogram[i - 1]:
+            i_max2 = i - 1
+            maxima_2_found = True
+        else:
+            i += 1
+    
+    return bins, histogram, i_max1, i_max2, coordination
