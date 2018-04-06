@@ -11,6 +11,7 @@ dimensional water.
 """
 
 import numpy as np
+import os
 import sys
 import warnings
 from collections import Iterable
@@ -349,3 +350,43 @@ def read_xyz(xyz_path, start=0, end=-1, stride=1, cell=False, spec_list=False,
             return coords, frames, cells
         else:
             return coords, frames, cells, species_list
+
+
+def write_pdb(path, positions, cell, species, frames=None):
+    """Write trajectory to .pdb file.
+
+    Args:
+        path (str): Path to file.
+        positions (ndarray, float): Atomic coordinates.
+            Indexed by [step, atom_index, dimension].
+        cell (ndarray, float): Cell dimensions.
+        species (list, str): Atomic species.
+        frames (ndarray, int): If given, labels frames with step number.
+            Defaults to None, so frames are labelled in increments of 1.
+    """
+    if os.path.splitext(path)[1] != '.pdb':
+        path += '.pdb'
+
+    with open(path, 'w') as pdb:
+        # Iterate over frames
+        for i in range(positions.shape[0]):
+            if frames is not None:
+                step = frames[i]
+            else:
+                step = i
+
+            # Write header
+            pdb.write('TITLE     Step: {:>11d}  Bead:       0 positions{{angstrom}}  cell{{angstrom}}\n'.format(step))
+            pdb.write('CRYST1 {:<8.5f} {:<8.5f} {:<8.5f} 90.00  90.00  90.00 P 1           1\n'.format(*cell[i]))
+
+            # Iterate over z_coords
+            for j in range(positions.shape[1]):
+                spec = species[j]
+                x, y, z = positions[i, j]
+
+                # Format coords to pdb's very specific length
+                x_str = '{:.3f}'.format(x)[:7]
+                y_str = '{:.3f}'.format(y)[:7]
+                z_str = '{:.3f}'.format(z)[:7]
+                pdb.write('ATOM  {:>5} {:>3}    1   {:>3}    {:<7} {:<7} {:<7} 1.00 0.00\n'.format(j+1, spec, 1, x_str, y_str, z_str))
+            pdb.write('ENDMDL\n')
