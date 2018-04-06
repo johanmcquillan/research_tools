@@ -54,7 +54,7 @@ def read_pdb(pdb_path, start=0, end=-1, stride=1, cell=False, spec_list=False,
         throb (bool): If True, display a throbber. Defaults to True.
 
     Returns:
-        coords (array, float): Coordinates of trajectory.
+        positions (array, float): Coordinates of trajectory.
             Indexed by [step, atom_index, axis].
         frames (array, int): Time steps.
         cell_array (array, float): Dimensions of supercell.
@@ -219,7 +219,7 @@ def read_xyz(xyz_path, start=0, end=-1, stride=1, cell=False, spec_list=False,
         throb (bool): If True, display a throbber. Defaults to True.
 
     Returns:
-        coords (array, float): Coordinates of trajectory.
+        positions (array, float): Coordinates of trajectory.
             Indexed by [step, atom_index, axis].
         frames (array, int): Time steps.
         cell_array (array, float): Dimensions of supercell.
@@ -424,7 +424,7 @@ def write_pdb(path, positions, cell, species, frames=None):
                 spec = species[j]
                 x, y, z = positions[i, j]
 
-                # Format coords to pdb's very specific length
+                # Format positions to pdb's very specific length
                 x_str = '{:.3f}'.format(x)[:7]
                 y_str = '{:.3f}'.format(y)[:7]
                 z_str = '{:.3f}'.format(z)[:7]
@@ -465,7 +465,7 @@ def write_xyz(path, positions, cell, species, frames=None):
                 s = species[j]
                 x, y, z = positions[i, j]
 
-                # Though xyz coords only need to be separated by whitespace some
+                # Though xyz positions only need to be separated by whitespace some
                 #  programs can only pass them if they fit into specific columns,
                 coords = ''
                 for u in [x, y, z]:
