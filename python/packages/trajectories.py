@@ -649,3 +649,40 @@ def reduce_to_supercell(positions, cell, molecules=False):
             mask[:, 2::3] = truth_grid
             new_positions += cell_array * mask.astype(int)
     return new_positions
+
+
+def plane_distribution(hydrogens, bins=50):
+    """Return histogram of the plane distributions of water molecules.
+
+    Finds the distribution of the angle that the vector from one H to other H
+    in a molecule makes with the z axis. 0 degrees means both H are in
+    the x-y plane; 90 degrees means both H are out of plane.
+
+    Args:
+        hydrogens (ndarray, float): Coordinates of hydrogen z_coords.
+            Must be even number of z_coords and consecutive z_coords must
+            pertain to same molecule.
+            Indexed by [step, atom, dimensions]
+        bins (int): Number of bins for histogram. Defaults to 50.
+    Returns:
+        hist (ndarray, float): Normalised frequency.
+        degrees (ndarray, float): Angle in degrees.
+    """
+    if hydrogens.shape[1] % 2 != 0:
+        raise ValueError('Odd number of hydrogens given. Have you included oxygens?')
+    
+    # Split each pair of hydrogen into two arrays
+    h1 = hydrogens[:, 0::2]
+    h2 = hydrogens[:, 1::2]
+    
+    # Get the unit vector from one H to other
+    d = h2[:, :] - h1[:, :]
+    d_mag = np.linalg.norm(d, axis=2)
+    d_norm = d / d_mag[:, :, None]
+    
+    # Calculate the angle with z axis
+    theta = 90. - np.arccos(d_norm[:, :, -1])*180./np.pi
+    
+    # Return histogram using absolute value of theta as hydrogens are identical
+    degrees, hist = np.histogram(abs(theta), bins=bins, normed=True)
+    return degrees, hist
