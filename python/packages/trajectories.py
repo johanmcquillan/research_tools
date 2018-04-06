@@ -598,3 +598,54 @@ def get_rdf(positions, cell, dr=0.1, r_max=10., prog_bar=False, verbose=False):
             i += 1
     
     return bins, histogram, i_max1, i_max2, coordination
+
+
+def reduce_to_supercell(positions, cell, molecules=False):
+    """Use periodic boundary conditions to ensure all coordinates
+    are within the first supercell.
+
+    Args:
+        positions (ndarray, float): Atomic coordinates.
+            Indexed by [step, atom_index, dimension].
+        cell (ndarray, float): Cell dimensions.
+        molecules (bool): If True, then keep molecules together.
+            Reduce oxygen positions to first supercell, then translate
+            hydrogen positions to stay connected, even if out of supercell.
+            Assumes species order in array is [O, H, H, O, H, H, ...].
+
+    Returns:
+        new_positions (ndarray, float): Reduced atomic coordinates.
+    """
+    new_positions = positions
+    # Pad cell array for every atom
+    cell_array = cell[:, None, :]
+    if not molecules:
+        # Reduce all atomic new_positions
+        while np.any(new_positions >= cell_array):
+            new_positions -= cell_array * (new_positions >= cell_array).astype(int)
+        while np.any(new_positions < 0.):
+            new_positions += cell_array * (new_positions < 0.).astype(int)
+    else:
+        # Only check for oxygens out of cell
+        while np.any(new_positions[:, ::3] >= cell_array):
+            # Find which oxygens are out of cell
+            truth_grid = new_positions[:, ::3] >= cell_array
+
+            # Duplicate above grid to apply to each group of OHH
+            mask = np.zeros(new_positions.shape, dtype=bool)
+            mask[:, 0::3] = truth_grid
+            mask[:, 1::3] = truth_grid
+            mask[:, 2::3] = truth_grid
+
+            new_positions -= cell_array * mask.astype(int)
+        while np.any(new_positions[:, ::3] < 0.):
+            # Find which oxygens are out of cell
+            truth_grid = new_positions[:, ::3] < 0.
+
+            # Duplicate above grid to apply to each group of OHH
+            mask = np.zeros(new_positions.shape, dtype=bool)
+            mask[:, 0::3] = truth_grid
+            mask[:, 1::3] = truth_grid
+            mask[:, 2::3] = truth_grid
+            new_positions += cell_array * mask.astype(int)
+    return new_positions
