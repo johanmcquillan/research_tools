@@ -475,7 +475,7 @@ def write_xyz(path, positions, cell, species, frames=None):
                 xyz.write('{:3}         {}  \n'.format(s, coords))
 
 
-def write_trajectory(path, **kwargs):
+def write_trajectory(path, *args, **kwargs):
     """Write trajectory to .pdb or .xyz file.
 
     Args:
@@ -490,9 +490,9 @@ def write_trajectory(path, **kwargs):
     # Check extension to decide which method to use
     ext = os.path.splitext(path)[1]
     if ext == '.pdb':
-        write_pdb(path, **kwargs)
+        write_pdb(path, *args, **kwargs)
     elif ext == '.xyz':
-        write_xyz(path, **kwargs)
+        write_xyz(path, *args, **kwargs)
     else:
         raise IOError(os.path.basename(path)+' - File must be a pdb or xyz')
 
