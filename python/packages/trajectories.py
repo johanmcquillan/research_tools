@@ -686,3 +686,40 @@ def plane_distribution(hydrogens, bins=50):
     # Return histogram using absolute value of theta as hydrogens are identical
     degrees, hist = np.histogram(abs(theta), bins=bins, normed=True)
     return degrees, hist
+
+
+def autocorrelation(x, dos=False, norm=None):
+    """Calculate the autocorrelation function of a signal with FFTs.
+
+    Args:
+        x (ndarray, float): Signal to analyse.
+        dos (bool): If True, return density of states.
+        norm (ndarray, float): Normalisation vector.
+            Defaults to None and no normalisation is applied.
+
+    Returns:
+        acf (ndarray, float): Autocorrelation function.
+        abs_fourier (ndarray, float): Density of states.
+            Only returns if density_of_states argument is True.
+    """
+    # FFT the signal
+    x1 = x.flatten()
+    fourier1 = np.fft.fft(x1)
+    
+    if norm is not None:
+        # Apply normalisation and FFT
+        x2 = x1 / norm
+        fourier2 = np.fft.fft(x2)
+    else:
+        # No need to calculate twice
+        x2 = x1
+        fourier2 = fourier1
+    
+    # Apply the convolution theorem
+    abs_fourier = fourier1 * np.conj(fourier2)
+    acf = np.fft.ifft(abs_fourier)
+    
+    if not dos:
+        return acf
+    else:
+        return acf, abs_fourier
