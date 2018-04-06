@@ -390,3 +390,46 @@ def write_pdb(path, positions, cell, species, frames=None):
                 z_str = '{:.3f}'.format(z)[:7]
                 pdb.write('ATOM  {:>5} {:>3}    1   {:>3}    {:<7} {:<7} {:<7} 1.00 0.00\n'.format(j+1, spec, 1, x_str, y_str, z_str))
             pdb.write('ENDMDL\n')
+
+
+def write_xyz(path, positions, cell, species, frames=None):
+    """Write trajectory to .xyz file.
+
+    Args:
+        path (str): Path to file.
+        positions (ndarray, float): Atomic coordinates.
+            Indexed by [step, atom_index, dimension].
+        cell (ndarray, float): Cell dimensions.
+        species (list, str): Atomic species.
+        frames (ndarray, int): If given, labels frames with step number.
+            Defaults to None, so frames are labelled in increments of 1.
+    """
+    if os.path.splitext(path)[1] != '.xyz':
+        path += '.xyz'
+
+    with open(path, 'w') as xyz:
+        # Iterate over frames
+        for i in range(positions.shape[0]):
+            if frames is not None:
+                step = frames[i]
+            else:
+                step = i
+
+            # Print number of z_coords
+            xyz.write('{}\n'.format(positions.shape[1]))
+
+            # Print comment line in i-PI format
+            a, b, c = cell[i]
+            xyz.write('# CELL(abcABC):   {:<9}   {:<9}   {:<9}    90.00000    90.00000    90.00000  Step: {:>11}  Bead:      0 positions{{angstrom}}  cell{{angstrom}}\n'.format(a, b, c, step))
+            for j in range(positions.shape[1]):
+                s = species[j]
+                x, y, z = positions[i, j]
+
+                # Though xyz coords only need to be separated by whitespace some
+                #  programs can only pass them if they fit into specific columns,
+                coords = ''
+                for u in [x, y, z]:
+                    if u > 0:
+                        coords += ' '
+                    coords += ' {:10.5e}'.format(u)
+                xyz.write('{:3}         {}  \n'.format(s, coords))
