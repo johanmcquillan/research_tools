@@ -782,3 +782,132 @@ def autocorrelation(x, dos=False, norm=None):
         return acf
     else:
         return acf, abs_fourier
+
+
+def sum_of_squares(x, y):
+    """Subtract the respective means from two arrays and return the dot product.
+    
+    If x and y are the same then this is the sample variance multiplied by
+        the number of elements.
+    
+    If x and y are different then this is the sample covariance multiplied by
+        the number of elements."""
+    return np.sum((x - np.mean(x)) * (y - np.mean(y)))
+
+
+def linear_least_squares(x, y):
+    """Perform linear least squares regression.
+    
+    Fit parameters a and b to the form y = a + (b*x).
+    
+    Args:
+        x (ndarray): First array.
+        y (ndarray): Second array.
+    
+    Returns:
+        a (float): Intercept of fitted function with the y-axis.
+        a_error (float): Error on a.
+        b (float): Gradient of fitted function.
+        b_error (float): Error on b.
+    """
+    
+    # Calculate variances and covariance
+    sum_xx = sum_of_squares(x, x)
+    sum_yy = sum_of_squares(y, y)
+    sum_xy = sum_of_squares(x, y)
+    var_x = sum_xx / len(x)
+    var_y = sum_yy / len(y)
+    covar = sum_xy / len(x)
+    
+    # Fit parameters
+    b = covar / var_x
+    a = np.mean(y) - b * np.mean(x)
+    r2 = sum_xy ** 2 / (sum_xx * sum_yy)
+    
+    # Calculate errors
+    s = np.sqrt((sum_yy - b * sum_xy) / (len(x) - 2))
+    a_error = s * np.sqrt(1. / len(x) + np.mean(x) ** 2 / sum_xx)
+    b_error = s / np.sqrt(sum_xx)
+    
+    return a, b, a_error, b_error
+
+
+def linear_least_squares_weighted(x, y, w):
+    """Perform weighted linear least squares regression.
+    
+    Fit parameters a and b to the form y = a + (b*x) for data points weighted by w."""
+    
+    X = np.array([np.ones(x.shape), x]).T
+    W = np.diag(w)
+    RHS = X.T.dot(W.dot(y))
+    LHS = X.T.dot(W.dot(X))
+    beta = np.linalg.solve(LHS, RHS)
+    
+    a, b = beta
+    
+    det_U = np.sum(w * x ** 2) - (np.sum(w * x)) ** 2
+    a_error = np.sqrt(np.sum(w * x ** 2)) / det_U
+    b_error = 1. / det_U
+    return a, a_error, b, b_error
+
+
+def linear_least_squares_origin(x, y):
+    """Perform linear least squares regression, forcing line through the origin.
+
+    Fit parameter b to the form y = (b*x)."""
+    b = np.sum(x * y) / np.sum(x ** 2)
+    b_error = 1. / np.sqrt(np.sum(2 * b * x - y))
+    return 0., b, 0., b_error
+
+
+def linear_least_squares_origin_weighted(x, y, w):
+    """Perform weighted linear least squares regression, forcing line through the origin.
+
+    Fit parameter b to the form y = (b*x) for data points weighted by w."""
+    b = np.sum(x * y * w) / np.sum(x ** 2 * w)
+    b_error = 1. / np.sqrt(np.sum(w * (2 * b * x - y)))
+    return 0., b, 0., b_error
+
+
+def get_msd(positions, time, d_regime=0):
+    """Calculate the mean-square displacement of a trajectory.
+    
+    Args:
+        positions (ndarray): Atomic coordinates. Indexed by [step, atom, dimension].
+        time (ndarray): Time of corresponding step.
+            The time period between steps must be equal for a physically meaningful result.
+        d_regime (int): Time of the start of the diffusive regime.
+    
+    Returns:
+        msd (ndarray): Mean-square displacement.
+        a (float): Intercept of fitted function with the y-axis.
+        a_error (float): Error on a.
+        b (float): Gradient of fitted function.
+        b_error (float): Error on b.
+    """
+    
+    # Array of step intervals
+    steps = np.arange(0, time.shape[0])
+    
+    # Initialise arrays
+    msd = np.zeros(steps.shape)
+    std = np.zeros(steps.shape)
+    weights = np.ones(steps.shape)
+    
+    # Iterate over intervals
+    for i in range(1, steps.shape[0]):
+        # Get squared displacements between all frames i steps apart
+        sd = (positions[i::i] - positions[:-i:i]) ** 2
+        
+        msd[i] = np.mean(sd)
+        weights[i] = sd.size    # Weight by number of points
+    
+    # Normalise weights
+    weights /= np.sum(weights)
+
+    # Get step corresponding to start of diffusive regime
+    s = np.argmax(time >= d_regime)
+    
+    # Linear fit
+    a, b, a_error, b_error = linear_least_squares_weighted(time[s:], msd[s:], weights[s:])
+    return msd, a, a_error, b, b_error
