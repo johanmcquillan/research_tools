@@ -34,11 +34,25 @@ bar_char = '>'
 
 
 def read_output(output_path, start=0, end=-1):
+    """Parse a .out file (or any i-PI file containing thermodynamic properties).
+    
+    Args:
+        output_path (str): Path to output file.
+        start (int): Starting step.
+        end (int): Ending step.
+    
+    Returns:
+        data_dict (dict): Dict of data columns, indexed by column header.
+        unit_dict (dict): Dict of units for each data column.
+    """
+    
     with open(output_path, 'r') as output:
         header = True
         columns = []
         units = []
         data = []
+        
+        # Read column titles and units, which are marked by #
         while header:
             line_split = output.next().split()
             if len(line_split) < 1 or line_split[0] != '#':
@@ -46,6 +60,7 @@ def read_output(output_path, start=0, end=-1):
             else:
                 col = line_split[2]
                 if '-' not in col:
+                    # Row information pertains to single column
                     field_unit = line_split[4].replace('}', '').split('{')
                     field = field_unit[0]
                     unit = ''
@@ -55,16 +70,23 @@ def read_output(output_path, start=0, end=-1):
                     units.append(unit)
                     data.append([])
                 else:
+                    # Row information pertains to multiple columns
                     lo, hi = [int(x) for x in col.split('-')]
                     data.append([]*(hi - lo + 1))
+        
+        # Read data
         for line in output:
             line_split = line.split()
             for i in range(len(columns)):
                 col = columns[i]
                 x = float(line_split[i])
+                
+                # Time step is only integer
                 if col == 'step':
                     x = int(x)
                 data[i].append(x)
+    
+    # Create dicts and return
     data_dict = {columns[i]: np.array(data[i]) for i in range(len(columns))}
     unit_dict = {columns[i]: units[i] for i in range(len(columns))}
     return data_dict, unit_dict
