@@ -33,6 +33,43 @@ bars_total = 20
 bar_char = '>'
 
 
+def read_output(output_path, start=0, end=-1):
+    with open(output_path, 'r') as output:
+        header = True
+        columns = []
+        units = []
+        data = []
+        while header:
+            line_split = output.next().split()
+            if len(line_split) < 1 or line_split[0] != '#':
+                header = False
+            else:
+                col = line_split[2]
+                if '-' not in col:
+                    field_unit = line_split[4].replace('}', '').split('{')
+                    field = field_unit[0]
+                    unit = ''
+                    if len(field_unit) > 1:
+                        unit += field_unit[1]
+                    columns.append(field)
+                    units.append(unit)
+                    data.append([])
+                else:
+                    lo, hi = [int(x) for x in col.split('-')]
+                    data.append([]*(hi - lo + 1))
+        for line in output:
+            line_split = line.split()
+            for i in range(len(columns)):
+                col = columns[i]
+                x = float(line_split[i])
+                if col == 'step':
+                    x = int(x)
+                data[i].append(x)
+    data_dict = {columns[i]: np.array(data[i]) for i in range(len(columns))}
+    unit_dict = {columns[i]: units[i] for i in range(len(columns))}
+    return data_dict, unit_dict
+
+
 def read_pdb(pdb_path, start=0, end=-1, stride=1, cell=False, spec_list=False,
              species=('O',), axes=(0, 1), throb=False):
     """Parse .pdb trajectory.
