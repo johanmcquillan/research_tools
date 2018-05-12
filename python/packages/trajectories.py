@@ -148,9 +148,7 @@ def read_pdb(pdb_path, start=0, end=-1, stride=1, cell=False, spec_list=False,
         raise ValueError('Starting frame must be the same as or before the final frame')
     
     if isinstance(species, list) and 'H' in species:
-        for H in ['H1', 'H2']:
-            if H not in species:
-                species.append(H)
+        species += [H for H in ['H1', 'H2'] if H not in species]
     elif isinstance(species, str):
         species = species.split(' ')
     elif not isinstance(species, Iterable):
@@ -194,8 +192,10 @@ def read_pdb(pdb_path, start=0, end=-1, stride=1, cell=False, spec_list=False,
                     line_split = line.split()
                 
                 # Parse cell dimensions and angles (latter not saved)
-                cell_dims = np.array([float(x) for x in [line[6 + y * 9:6 + (y + 1) * 9] for y in range(3)]])
-                cell_angs = np.array([float(x) for x in [line[33 + y * 7:33 + (y + 1) * 7] for y in range(3)]])
+                cell_dims = np.array([float(x) for x in [line[6 + y * 9:6 + (y + 1) * 9]
+                                                         for y in range(3)]])
+                cell_angs = np.array([float(x) for x in [line[33 + y * 7:33 + (y + 1) * 7]
+                                                         for y in range(3)]])
                 
                 line = pdb.next()
                 line_split = line.split()
@@ -222,7 +222,8 @@ def read_pdb(pdb_path, start=0, end=-1, stride=1, cell=False, spec_list=False,
                 while line_split[0] != 'END':
                     spec = line_split[2]
                     if add_step and spec in species:
-                        coords[-1].append([float(x) for x in [line[30 + y * 8:30 + (y + 1) * 8] for y in axes]])
+                        coords[-1].append([float(x) for x in [line[30 + y * 8:30 + (y + 1) * 8]
+                                                              for y in axes]])
                         if spec_list and first:
                             species_list.append(spec)
                     line = pdb.next()
@@ -312,9 +313,7 @@ def read_xyz(xyz_path, start=0, end=-1, stride=1, cell=False, spec_list=False,
         raise ValueError('Starting frame must be the same as or after the final frame')
     
     if isinstance(species, list) and 'H' in species:
-        for H in ['H1', 'H2']:
-            if H not in species:
-                species.append(H)
+        species += [H for H in ['H1', 'H2'] if H not in species]
     elif isinstance(species, str):
         species = species.split(' ')
     elif not isinstance(species, Iterable):
@@ -639,9 +638,8 @@ def get_rdf(positions, cell, dr=0.1, r_max=10., prog_bar=False, verbose=False):
             i += 1
     
     # Calculate coordination number by integrating from 0 to i_min2
-    coordination = 0
-    for i in range(0, i_min2):
-        coordination += histogram[i] * bins[i] * dr
+    coordination = sum([histogram[i] * bins[i] * dr for i in range(0, i_min2)])
+    
     # Unnormalise
     coordination *= 2 * np.pi * np.mean(density)
     
