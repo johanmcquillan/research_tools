@@ -73,7 +73,7 @@ for traj in args.vtraj:
             sys.stdout.write('\n')
             sys.stdout.flush()
     
-    # Normalise by number of atoms
+    # Normalise by number of positions
     vacf /= N['total']
     
     # Get the total velocity density of states and power spectrum
