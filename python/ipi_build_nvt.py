@@ -3,6 +3,9 @@
 from argparse import ArgumentParser
 from packages import filer, ipi_builder
 
+__author__ = "Johan G. McQuillan"
+__email__ = "johan.mcquillan.13@ucl.ac.uk"
+
 # Parse arguments
 parser = ArgumentParser()
 parser.add_argument('prefix', type=str,
