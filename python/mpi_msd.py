@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 """Calculate the two-dimensional mean-square displacement of trajectories.
 

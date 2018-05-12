@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 """Calculate the distribution of in-plane and out-of-plane water molecules."""
 

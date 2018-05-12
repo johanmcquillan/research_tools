@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 """Calculate the velocity density of states and the power spectrum from a velocity trajectory"""
 

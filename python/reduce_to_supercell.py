@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 """Use periodic boundary conditions to reduce atomic coordinates to a single supercell"""
 
