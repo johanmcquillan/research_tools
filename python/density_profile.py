@@ -14,7 +14,7 @@ __email__ = "johan.mcquillan.13@ucl.ac.uk"
 
 L = 6.022E23    # Avogadro's number
 M = 18.         # Molar mass of H2O
-m = M / L       # Molceular mass of H2O
+m = M / L       # Molecular mass of H2O
 
 parser = ArgumentParser(formatter_class=RawTextHelpFormatter)
 parser.add_argument('traj', type=str, nargs='+',
